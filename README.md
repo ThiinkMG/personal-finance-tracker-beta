@@ -50,7 +50,7 @@ A fully self-contained, single-file personal finance tracker built for [My Colle
 
 ### 1. Add Your Gemini API Key
 
-The AI chat feature ("Chat with Oliver") requires a free Google Gemini API key. See **[SETUP.md](SETUP.md)** for step-by-step instructions — it takes about 2 minutes.
+The AI chat feature ("Chat with Oliver") requires a free Google Gemini API key stored in a secure backend proxy (Cloudflare Worker). See **[SETUP.md](SETUP.md)** for step-by-step instructions.
 
 ### 2. Open the App
 
@@ -78,7 +78,7 @@ This is a single static HTML file — deploy it anywhere:
 - **Netlify / Vercel** — Drag and drop the file
 - **Any web host** — Upload `index.html`
 
-> **Note:** For public deployments, consider using a backend proxy for the API key. See [SETUP.md](SETUP.md) for details.
+> **Note:** This project now uses a backend proxy pattern for Gemini in public deployments. See [SETUP.md](SETUP.md) for details.
 
 ## Project Structure
 
@@ -86,7 +86,8 @@ This is a single static HTML file — deploy it anywhere:
 mcf-personal-finance-tracker/
 ├── index.html          # Complete self-contained application
 ├── assets/             # Reserved for future static assets
-├── SETUP.md            # Gemini API key setup instructions
+├── SETUP.md            # Secure Gemini proxy setup instructions
+├── cloudflare-worker.js # Worker proxy code (keeps API key private)
 ├── README.md           # This file
 ├── CHANGELOG.md        # Version history
 ├── LICENSE             # MIT License

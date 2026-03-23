@@ -414,9 +414,9 @@
 <script>
 const STORAGE_KEY = 'mcf-finance-tracker';
 // ===== GEMINI API CONFIG =====
-// Paste your free Gemini API key between the quotes below.
-// Get one at: https://aistudio.google.com/apikey
-const GEMINI_API_KEY = 'AIzaSyCNArCEiV6fP3B9PvHYogMGSbkcGTwNpAw';
+// Use a backend proxy URL (recommended for public sites).
+// Example: https://mcf-oliver-proxy.YOUR_SUBDOMAIN.workers.dev/api/chat
+const GEMINI_PROXY_URL = 'https://mcf-oliver-proxy.team-33b.workers.dev/api/chat';
 const GEMINI_MODEL = 'gemini-2.0-flash';
 // =============================
 const CAT_COLORS = { Housing:'#4c6ef5', Food:'#f76707', Transportation:'#20c997', Entertainment:'#e64980', Education:'#7950f2', Healthcare:'#12b886', Savings:'#26e011', Other:'#868e96' };
@@ -664,9 +664,9 @@ async function callOliver(userMsg) {
   showTyping(); document.getElementById('chatSend').disabled=true;
   chatHistory.push({role:'user',content:userMsg});
 
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+  if (!GEMINI_PROXY_URL) {
     removeTyping(); document.getElementById('chatSend').disabled=false;
-    appendMsg("Oliver isn't connected yet. To enable AI chat, add a free Gemini API key — see SETUP.md for instructions.", 'bot');
+    appendMsg("Oliver isn't connected yet. Add your proxy URL in index.html — see SETUP.md for instructions.", 'bot');
     return;
   }
 
@@ -697,7 +697,7 @@ Guidelines:
     geminiContents.push({ role, parts: [{ text }] });
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  const url = GEMINI_PROXY_URL;
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
   const getRetryDelayMs = (res, attempt) => {
     const h = res.headers.get('retry-after');
@@ -714,10 +714,10 @@ Guidelines:
       res = await fetch(url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': GEMINI_API_KEY
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          model: GEMINI_MODEL,
           contents: geminiContents,
           generationConfig: {
             temperature: 0.7,
