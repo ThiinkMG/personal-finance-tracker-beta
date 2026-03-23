@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Finance Tracker - My College Finance</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --mcf-brand-blue: #012699;
+      --mcf-brand-green: #26e011;
+      --mcf-brand-amber: #fdc003;
+      --mcf-brand-black: #000516;
+      --mcf-background: #fafafa;
+      --mcf-foreground: #09090b;
+      --mcf-card: #ffffff;
+      --mcf-card-foreground: #09090b;
+      --mcf-primary: #336bff;
+      --mcf-primary-foreground: #f8fafc;
+      --mcf-secondary: #f1f5f9;
+      --mcf-secondary-foreground: #64748b;
+      --mcf-muted: #f1f5f9;
+      --mcf-muted-foreground: #64748b;
+      --mcf-accent: #f1f5f9;
+      --mcf-destructive: #ef4444;
+      --mcf-destructive-foreground: #f8fafc;
+      --mcf-border: #e2e8f0;
+      --mcf-input: #e2e8f0;
+      --mcf-radius: 0.5rem;
+      --mcf-transition: all 0.3s ease;
+      --mcf-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --mcf-shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    body.dark-mode {
+      --mcf-background: #09090b; --mcf-foreground: #f8fafc; --mcf-card: #1a1a1f;
+      --mcf-card-foreground: #f8fafc; --mcf-primary: #4c6ef5; --mcf-primary-foreground: #f8fafc;
+      --mcf-secondary: #374151; --mcf-secondary-foreground: #f8fafc;
+      --mcf-muted: #1c1917; --mcf-muted-foreground: #94a3b8;
+      --mcf-accent: #374151; --mcf-destructive: #991b1b; --mcf-destructive-foreground: #f8fafc;
+      --mcf-border: #374151; --mcf-input: #1f2937;
+      --mcf-brand-blue: #0139cc; --mcf-brand-green: #3ae826;
+      --mcf-brand-amber: #fdc922; --mcf-brand-black: #f0f1ff;
+      --mcf-shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --mcf-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 16px; line-height: 1.5; background: var(--mcf-background); color: var(--mcf-foreground);
+      -webkit-font-smoothing: antialiased; transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .mcf-header { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--mcf-border); backdrop-filter: blur(12px); background: rgba(250,250,250,0.92); transition: var(--mcf-transition); }
+    body.dark-mode .mcf-header { background: rgba(9,9,11,0.92); }
+    .mcf-container { max-width: 1280px; margin: 0 auto; padding: 0 1rem; }
+    .mcf-header-content { display: flex; justify-content: space-between; align-items: center; height: 64px; }
+    .mcf-header-brand { display: flex; align-items: center; gap: 0.75rem; }
+    .mcf-logo-header { width: 48px; height: 48px; object-fit: contain; }
+    .mcf-brand-text { display: flex; flex-direction: column; }
+    .mcf-brand-name { font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: var(--mcf-brand-blue); }
+    .mcf-tagline { font-size: 0.6rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mcf-muted-foreground); }
+    .mcf-theme-toggle { width: 40px; height: 40px; padding: 0; border: 2px solid var(--mcf-border); background: var(--mcf-card); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--mcf-transition); color: var(--mcf-foreground); }
+    .mcf-theme-toggle:hover { border-color: var(--mcf-primary); transform: scale(1.08); }
+    .hero-section { background: linear-gradient(135deg, var(--mcf-brand-blue) 0%, #0139cc 50%, #001a66 100%); color: #fff; padding: 2.5rem 0 2rem; text-align: center; position: relative; overflow: hidden; }
+    .hero-section::before { content: ''; position: absolute; top: -50%; right: -20%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(253,192,3,0.15) 0%, transparent 70%); border-radius: 50%; }
+    .hero-title { font-size: 1.75rem; font-weight: 900; margin-bottom: 0.5rem; }
+    .hero-subtitle { font-size: 0.95rem; opacity: 0.85; max-width: 520px; margin: 0 auto; line-height: 1.6; }
+    .hero-badge { display: inline-block; background: rgba(253,192,3,0.2); border: 1px solid rgba(253,192,3,0.4); color: var(--mcf-brand-amber); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 999px; margin-bottom: 0.75rem; }
+    .app-main { padding: 1.5rem 0 4rem; }
+    .app-grid { display: grid; gap: 1.25rem; grid-template-columns: 1fr; }
+    @media (min-width: 768px) { .app-grid { grid-template-columns: 400px 1fr; } }
+    .card { background: var(--mcf-card); border: 1px solid var(--mcf-border); border-radius: calc(var(--mcf-radius) * 2); padding: 1.25rem; transition: var(--mcf-transition); box-shadow: var(--mcf-shadow-sm); }
+    .card:hover { box-shadow: var(--mcf-shadow-md); }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--mcf-foreground); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+
+    /* ===== BUDGET PANEL ===== */
+    .budget-panel { background: var(--mcf-card); border: 2px solid var(--mcf-border); border-radius: calc(var(--mcf-radius) * 2); padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: var(--mcf-shadow-sm); transition: var(--mcf-transition); }
+    .budget-panel.has-budget { border-color: var(--mcf-brand-blue); }
+    .budget-panel.over-budget { border-color: var(--mcf-destructive); }
+    .budget-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+    .budget-header .title { font-size: 1rem; font-weight: 700; }
+    .budget-input-inline { display: flex; align-items: center; gap: 0.35rem; }
+    .budget-input-inline span { font-size: 1.1rem; font-weight: 700; color: var(--mcf-foreground); }
+    .budget-input-inline input { width: 140px; padding: 0.45rem 0.6rem; font-size: 1rem; font-weight: 700; background: var(--mcf-background); color: var(--mcf-foreground); border: 2px solid var(--mcf-input); border-radius: var(--mcf-radius); font-family: inherit; outline: none; transition: var(--mcf-transition); }
+    .budget-input-inline input:focus { border-color: var(--mcf-primary); box-shadow: 0 0 0 3px rgba(51,107,255,0.12); }
+    .budget-input-inline input.set { border-color: var(--mcf-brand-green); }
+    .budget-saved-hint { font-size: 0.68rem; color: var(--mcf-brand-green); font-weight: 600; opacity: 0; transition: opacity 0.3s ease; margin-left: 0.3rem; }
+    .budget-saved-hint.show { opacity: 1; }
+    .budget-comparison { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+    @media (max-width: 600px) { .budget-comparison { grid-template-columns: 1fr; } }
+    .budget-stat { text-align: center; padding: 0.75rem; background: var(--mcf-muted); border-radius: calc(var(--mcf-radius) * 1.5); }
+    .budget-stat-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--mcf-muted-foreground); margin-bottom: 0.2rem; }
+    .budget-stat-value { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
+    .budget-stat-sub { font-size: 0.68rem; color: var(--mcf-muted-foreground); margin-top: 0.15rem; }
+    .color-blue { color: var(--mcf-brand-blue); }
+    .color-amber { color: #d4a00a; }
+    body.dark-mode .color-amber { color: var(--mcf-brand-amber); }
+    .color-green { color: var(--mcf-brand-green); }
+    .color-red { color: var(--mcf-destructive); }
+    .budget-progress-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.35rem; }
+    .budget-progress-pct { font-size: 0.85rem; font-weight: 700; }
+    .budget-progress-text { font-size: 0.72rem; color: var(--mcf-muted-foreground); }
+    .budget-bar-track { width: 100%; height: 14px; background: var(--mcf-muted); border-radius: 999px; overflow: hidden; }
+    .budget-bar-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease, background 0.3s ease; }
+    .budget-bar-fill.good { background: linear-gradient(90deg, #26e011, #1fb80d); }
+    .budget-bar-fill.warning { background: linear-gradient(90deg, #fdc003, #e6a800); }
+    .budget-bar-fill.danger { background: linear-gradient(90deg, #ef4444, #dc2626); }
+    .budget-empty { text-align: center; padding: 1rem 0.5rem; color: var(--mcf-muted-foreground); }
+    .budget-empty-icon { font-size: 1.8rem; margin-bottom: 0.4rem; opacity: 0.5; }
+    .budget-empty-text { font-size: 0.82rem; line-height: 1.5; }
+    .budget-empty-text strong { color: var(--mcf-foreground); }
+
+    /* ===== SUMMARY ===== */
+    .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+    @media (max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } }
+    .summary-card { background: var(--mcf-card); border: 1px solid var(--mcf-border); border-radius: calc(var(--mcf-radius) * 1.5); padding: 1rem; text-align: center; transition: var(--mcf-transition); box-shadow: var(--mcf-shadow-sm); }
+    .summary-card:hover { box-shadow: var(--mcf-shadow-md); transform: translateY(-2px); }
+    .summary-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--mcf-muted-foreground); margin-bottom: 0.35rem; }
+    .summary-value { font-size: 1.5rem; font-weight: 800; }
+    .summary-sub { font-size: 0.7rem; color: var(--mcf-muted-foreground); margin-top: 0.2rem; }
+    .summary-card.blue .summary-value { color: var(--mcf-brand-blue); }
+    .summary-card.amber .summary-value { color: #d4a00a; }
+    body.dark-mode .summary-card.amber .summary-value { color: var(--mcf-brand-amber); }
+
+    /* ===== FORM ===== */
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--mcf-foreground); margin-bottom: 0.35rem; }
+    .form-input, .form-select { width: 100%; padding: 0.65rem 0.75rem; font-size: 0.875rem; background: var(--mcf-background); color: var(--mcf-foreground); border: 2px solid var(--mcf-input); border-radius: var(--mcf-radius); transition: var(--mcf-transition); font-family: inherit; outline: none; }
+    .form-input:focus, .form-select:focus { border-color: var(--mcf-primary); box-shadow: 0 0 0 3px rgba(51,107,255,0.12); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+    /* ===== BUTTONS ===== */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.6rem 1.2rem; font-size: 0.8rem; font-weight: 600; border-radius: var(--mcf-radius); border: none; cursor: pointer; transition: var(--mcf-transition); font-family: inherit; white-space: nowrap; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--mcf-primary); color: var(--mcf-primary-foreground); width: 100%; }
+    .btn-primary:hover { background: var(--mcf-brand-blue); transform: translateY(-1px); box-shadow: var(--mcf-shadow-md); }
+    .btn-outline { background: transparent; border: 2px solid var(--mcf-border); color: var(--mcf-foreground); }
+    .btn-outline:hover { border-color: var(--mcf-primary); background: rgba(51,107,255,0.05); }
+    .btn-danger { background: var(--mcf-destructive); color: #fff; }
+    .btn-amber { background: var(--mcf-brand-amber); color: #000; }
+    .btn-amber:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+    .action-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    .action-bar .btn { flex: 1; min-width: 100px; }
+
+    /* ===== PROFILE ===== */
+    .profile-section { margin-top: 1rem; border-top: 1px solid var(--mcf-border); padding-top: 1rem; }
+    .profile-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 0.5rem 0; user-select: none; }
+    .profile-toggle-label { font-size: 0.8rem; font-weight: 600; color: var(--mcf-foreground); }
+    .profile-toggle-arrow { transition: transform 0.3s ease; color: var(--mcf-muted-foreground); font-size: 0.75rem; }
+    .profile-toggle-arrow.open { transform: rotate(180deg); }
+    .profile-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+    .profile-content.open { max-height: 300px; }
+    .profile-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; padding: 0.5rem 0; }
+    .profile-row label { font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+    .profile-row input { flex: 1; padding: 0.5rem; font-size: 0.85rem; background: var(--mcf-background); color: var(--mcf-foreground); border: 2px solid var(--mcf-input); border-radius: var(--mcf-radius); font-family: inherit; outline: none; transition: var(--mcf-transition); }
+    .profile-row input:focus { border-color: var(--mcf-primary); }
+
+    /* ===== EXPENSE LIST ===== */
+    .expense-list { max-height: 360px; overflow-y: auto; margin-top: 0.75rem; }
+    .expense-list::-webkit-scrollbar { width: 5px; }
+    .expense-list::-webkit-scrollbar-thumb { background: var(--mcf-border); border-radius: 999px; }
+    .expense-item { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0; border-bottom: 1px solid var(--mcf-border); animation: fadeSlideIn 0.3s ease-out; }
+    .expense-item:last-child { border-bottom: none; }
+    .expense-left { display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; }
+    .expense-cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .expense-category { font-size: 0.8rem; font-weight: 600; }
+    .expense-note { font-size: 0.7rem; color: var(--mcf-muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+    .expense-right { display: flex; align-items: center; gap: 0.75rem; }
+    .expense-amount { font-size: 0.85rem; font-weight: 700; }
+    .expense-date { font-size: 0.65rem; color: var(--mcf-muted-foreground); }
+    .expense-delete { background: none; border: none; cursor: pointer; color: var(--mcf-muted-foreground); padding: 4px; border-radius: 4px; transition: var(--mcf-transition); font-size: 0.8rem; }
+    .expense-delete:hover { color: var(--mcf-destructive); background: rgba(239,68,68,0.1); }
+    .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--mcf-muted-foreground); }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+    .empty-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--mcf-foreground); }
+    .empty-text { font-size: 0.8rem; }
+
+    /* ===== CHARTS ===== */
+    .charts-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+    @media (min-width: 640px) { .charts-grid { grid-template-columns: 1fr 1fr; } }
+    .chart-wrapper { position: relative; width: 100%; max-height: 300px; }
+    .chart-wrapper canvas { max-height: 300px; }
+
+    .template-bar { background: linear-gradient(135deg, rgba(1,38,153,0.06) 0%, rgba(253,192,3,0.06) 100%); border: 1px solid var(--mcf-border); border-radius: calc(var(--mcf-radius) * 1.5); padding: 0.85rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .template-bar-text { font-size: 0.78rem; color: var(--mcf-muted-foreground); }
+    .month-filter { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .month-filter label { font-size: 0.78rem; font-weight: 600; }
+    .month-filter input[type="month"] { padding: 0.4rem 0.6rem; font-size: 0.8rem; background: var(--mcf-background); color: var(--mcf-foreground); border: 2px solid var(--mcf-input); border-radius: var(--mcf-radius); font-family: inherit; outline: none; }
+
+    /* ===== CHAT ===== */
+    .chat-fab { position: fixed; bottom: 1.25rem; right: 1.25rem; height: 44px; border-radius: 999px; background: var(--mcf-brand-blue); color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(1,38,153,0.35); display: flex; align-items: center; gap: 0.45rem; padding: 0 1rem; transition: var(--mcf-transition); z-index: 100; font-family: inherit; font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+    .chat-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(1,38,153,0.45); }
+    .chat-fab-sparkle { display: flex; align-items: center; flex-shrink: 0; }
+    .chat-fab-label { display: flex; align-items: center; gap: 0.4rem; }
+    .chat-fab-beta { font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; background: var(--mcf-brand-amber); color: #000; padding: 0.1rem 0.4rem; border-radius: 999px; line-height: 1.3; }
+    .chat-panel { position: fixed; bottom: 4.5rem; right: 1.25rem; width: 370px; max-width: calc(100vw - 2rem); height: 520px; max-height: calc(100vh - 7rem); background: var(--mcf-card); border: 1px solid var(--mcf-border); border-radius: calc(var(--mcf-radius) * 2.5); box-shadow: 0 20px 60px rgba(0,0,0,0.2); display: flex; flex-direction: column; z-index: 99; overflow: hidden; transform: translateY(20px) scale(0.95); opacity: 0; pointer-events: none; transition: transform 0.3s ease, opacity 0.3s ease; }
+    .chat-panel.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: all; }
+    .chat-header { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--mcf-border); background: var(--mcf-brand-blue); color: #fff; }
+    .chat-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.3); }
+    .chat-header-info { flex: 1; }
+    .chat-header-name { font-size: 0.9rem; font-weight: 700; }
+    .chat-header-status { font-size: 0.65rem; opacity: 0.8; }
+    .chat-close { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: var(--mcf-transition); }
+    .chat-close:hover { background: rgba(255,255,255,0.25); }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .chat-msg { max-width: 85%; padding: 0.65rem 0.85rem; border-radius: var(--mcf-radius); font-size: 0.82rem; line-height: 1.55; animation: fadeSlideIn 0.3s ease-out; }
+    .chat-msg.bot { align-self: flex-start; background: var(--mcf-muted); color: var(--mcf-foreground); border-bottom-left-radius: 4px; }
+    .chat-msg.user { align-self: flex-end; background: var(--mcf-brand-blue); color: #fff; border-bottom-right-radius: 4px; }
+    .chat-msg.typing { align-self: flex-start; background: var(--mcf-muted); }
+    .typing-dots { display: inline-flex; gap: 4px; }
+    .typing-dots span { width: 6px; height: 6px; background: var(--mcf-muted-foreground); border-radius: 50%; animation: typingBounce 1.4s infinite; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    .chat-suggestions { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 1rem 0.75rem; }
+    .chat-suggestion { padding: 0.4rem 0.7rem; font-size: 0.72rem; font-weight: 500; background: var(--mcf-muted); color: var(--mcf-foreground); border: 1px solid var(--mcf-border); border-radius: 999px; cursor: pointer; transition: var(--mcf-transition); font-family: inherit; }
+    .chat-suggestion:hover { border-color: var(--mcf-primary); background: rgba(51,107,255,0.08); }
+    .chat-input-area { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--mcf-border); }
+    .chat-input { flex: 1; padding: 0.55rem 0.75rem; font-size: 0.82rem; background: var(--mcf-background); color: var(--mcf-foreground); border: 2px solid var(--mcf-input); border-radius: var(--mcf-radius); outline: none; font-family: inherit; transition: var(--mcf-transition); }
+    .chat-input:focus { border-color: var(--mcf-primary); }
+    .chat-send { width: 36px; height: 36px; border-radius: 50%; background: var(--mcf-primary); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--mcf-transition); flex-shrink: 0; }
+    .chat-send:hover { background: var(--mcf-brand-blue); }
+    .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== FOOTER ===== */
+    .mcf-footer { background: linear-gradient(to bottom, #111827, #000); color: #fff; padding: 2.5rem 0; margin-top: 3rem; }
+    .mcf-footer-content { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+    .mcf-footer-brand { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
+    .mcf-footer .mcf-logo-header { width: 60px; height: 60px; }
+    .mcf-footer-title { font-size: 1.1rem; font-weight: 900; letter-spacing: 0.05em; }
+    .mcf-footer-desc { max-width: 420px; color: rgba(255,255,255,0.75); font-size: 0.8rem; line-height: 1.6; }
+    .mcf-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; align-items: center; }
+    .mcf-footer-link { color: rgba(255,255,255,0.65); text-decoration: none; font-size: 0.78rem; transition: color 0.3s; }
+    .mcf-footer-link:hover { color: var(--mcf-brand-amber); text-decoration: underline; }
+    .mcf-footer-sep { color: rgba(255,255,255,0.25); font-size: 0.78rem; }
+    .mcf-footer-tagline { font-size: 0.8rem; letter-spacing: 0.1em; color: var(--mcf-brand-amber); font-weight: 500; }
+    .mcf-footer-copy { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
+
+    .toast { position: fixed; bottom: 4.5rem; left: 50%; z-index: 200; transform: translateX(-50%) translateY(20px); background: var(--mcf-brand-blue); color: #fff; padding: 0.65rem 1.25rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,0.25); opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease; }
+    .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+
+    @media (max-width: 767px) {
+      .mcf-brand-text { display: none; }
+      .hero-title { font-size: 1.35rem; }
+      .budget-stat-value { font-size: 1.1rem; }
+      .summary-value { font-size: 1.2rem; }
+      .chat-panel { width: calc(100vw - 1.5rem); right: 0.75rem; bottom: 4.25rem; height: 65vh; }
+    }
+  </style>
+</head>
+<body>
+  <header class="mcf-header"><div class="mcf-container"><div class="mcf-header-content">
+    <div class="mcf-header-brand">
+      <img src="https://static.wixstatic.com/media/c24a60_2b6231b666214539ae22ebd2dffe7a09~mv2.png" alt="My College Finance Logo" class="mcf-logo-header">
+      <div class="mcf-brand-text"><span class="mcf-brand-name">My College Finance</span><span class="mcf-tagline">EDUCATE &bull; MOTIVATE &bull; ELEVATE</span></div>
+    </div>
+    <button id="themeToggle" class="mcf-theme-toggle" aria-label="Toggle dark mode">
+      <svg class="sun-icon" width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="4" fill="currentColor"/><path d="M10 0v4M10 16v4M20 10h-4M4 10H0M17.07 2.93l-2.83 2.83M5.76 14.24l-2.83 2.83M17.07 17.07l-2.83-2.83M5.76 5.76L2.93 2.93" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg class="moon-icon" width="18" height="18" viewBox="0 0 20 20" fill="none" style="display:none;"><path d="M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C10.3395 3 10.6734 3.02389 11 3.07039C9.27477 4.07544 8 5.8965 8 8C8 11.3137 10.6863 14 14 14C15.1035 14 16.0754 13.6238 16.9296 12.9998C16.9762 13.3266 17 13.6605 17 14Z" fill="currentColor"/></svg>
+    </button>
+  </div></div></header>
+
+  <section class="hero-section"><div class="mcf-container">
+    <div class="hero-badge">Personal Finance Tool</div>
+    <h1 class="hero-title">Personal Finance Tracker</h1>
+    <p class="hero-subtitle">Track your spending, set a budget, and build smarter money skills — all in one place.</p>
+  </div></section>
+
+  <div class="app-main"><div class="mcf-container">
+    <div class="template-bar">
+      <span class="template-bar-text">Want a printable version? Download a blank template to fill out on your own.</span>
+      <button class="btn btn-outline btn-sm" onclick="downloadTemplate()">Download Template</button>
+    </div>
+
+    <div class="month-filter">
+      <label for="monthFilter">Viewing:</label>
+      <input type="month" id="monthFilter">
+    </div>
+
+    <!-- ===== BUDGET PANEL ===== -->
+    <div class="budget-panel" id="budgetPanel">
+      <div class="budget-header">
+        <span class="title">Monthly Budget</span>
+        <div style="display:flex;align-items:center;gap:0.4rem;">
+          <div class="budget-input-inline">
+            <span>$</span>
+            <input type="number" id="budgetInput" placeholder="Enter budget..." min="0" step="1" aria-label="Monthly budget amount">
+          </div>
+          <span class="budget-saved-hint" id="budgetSavedHint">Saved</span>
+        </div>
+      </div>
+      <div id="budgetEmpty">
+        <div class="budget-empty">
+          <div class="budget-empty-icon">&#127919;</div>
+          <div class="budget-empty-text"><strong>Set a monthly budget above</strong> to see how your spending compares.<br>Try the 50/30/20 rule: 50% needs, 30% wants, 20% savings.</div>
+        </div>
+      </div>
+      <div id="budgetActive" style="display:none;">
+        <div class="budget-comparison">
+          <div class="budget-stat"><div class="budget-stat-label">Budget</div><div class="budget-stat-value color-blue" id="bsBudget">$0</div></div>
+          <div class="budget-stat"><div class="budget-stat-label">Spent</div><div class="budget-stat-value color-amber" id="bsSpent">$0</div><div class="budget-stat-sub" id="bsSpentPct"></div></div>
+          <div class="budget-stat"><div class="budget-stat-label">Remaining</div><div class="budget-stat-value" id="bsRemaining">$0</div><div class="budget-stat-sub" id="bsRemainingPct"></div></div>
+        </div>
+        <div>
+          <div class="budget-progress-header">
+            <span class="budget-progress-pct" id="bpPct">0%</span>
+            <span class="budget-progress-text" id="bpText">of budget used</span>
+          </div>
+          <div class="budget-bar-track"><div class="budget-bar-fill good" id="bpFill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="summary-grid">
+      <div class="summary-card blue"><div class="summary-label">Total Spent This Month</div><div class="summary-value" id="totalSpent">$0.00</div><div class="summary-sub" id="expenseCount">0 expenses</div></div>
+      <div class="summary-card amber"><div class="summary-label">Top Spending Category</div><div class="summary-value" id="topCategory">—</div><div class="summary-sub" id="topCategoryAmt">No data yet</div></div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="app-grid">
+      <div>
+        <div class="card">
+          <div class="card-title"><span class="icon">+</span> Add Expense</div>
+          <form id="expenseForm" autocomplete="off">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label" for="amount">Amount ($)</label><input type="number" id="amount" class="form-input" placeholder="0.00" step="0.01" min="0" required></div>
+              <div class="form-group"><label class="form-label" for="category">Category</label>
+                <select id="category" class="form-select" required><option value="">Select...</option><option value="Housing">Housing</option><option value="Food">Food</option><option value="Transportation">Transportation</option><option value="Entertainment">Entertainment</option><option value="Education">Education</option><option value="Healthcare">Healthcare</option><option value="Savings">Savings</option><option value="Other">Other</option></select>
+              </div>
+            </div>
+            <div class="form-group"><label class="form-label" for="expDate">Date</label><input type="date" id="expDate" class="form-input" required></div>
+            <div class="form-group"><label class="form-label" for="note">Note (optional)</label><input type="text" id="note" class="form-input" placeholder="e.g. Grocery run, monthly rent..." maxlength="100"></div>
+            <button type="submit" class="btn btn-primary btn-block">Submit Expense</button>
+          </form>
+          <div class="profile-section">
+            <div class="profile-toggle" onclick="toggleProfile()">
+              <span class="profile-toggle-label">&#9881; Profile &amp; Settings (Beta)</span>
+              <span class="profile-toggle-arrow" id="profileArrow">&#9660;</span>
+            </div>
+            <div class="profile-content" id="profileContent">
+              <div class="profile-row"><label for="nameInput">Your Name:</label><input type="text" id="nameInput" placeholder="Optional" maxlength="50"></div>
+              <p style="font-size:0.68rem;color:var(--mcf-muted-foreground);margin-top:0.4rem;">All data stored locally on your device. No account required.</p>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-outline btn-sm" onclick="exportCSV()">Export CSV</button>
+            <button class="btn btn-amber btn-sm" onclick="exportPDF()">Save &amp; Download</button>
+            <button class="btn btn-danger btn-sm" onclick="resetAll()">Reset</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:1.25rem;">
+          <div class="card-title"><span class="icon">&#128203;</span> Recent Expenses</div>
+          <div class="expense-list" id="expenseList"></div>
+        </div>
+      </div>
+      <div>
+        <div class="charts-grid">
+          <div class="card"><div class="card-title"><span class="icon">&#128202;</span> Spending by Category</div><div class="chart-wrapper"><canvas id="barChart"></canvas></div></div>
+          <div class="card"><div class="card-title"><span class="icon">&#127856;</span> Spending Distribution</div><div class="chart-wrapper"><canvas id="donutChart"></canvas></div></div>
+        </div>
+        <div class="card" style="margin-top:1.25rem;" id="budgetChartCard">
+          <div class="card-title"><span class="icon">&#128176;</span> Budget vs. Actual Spending</div>
+          <div class="chart-wrapper"><canvas id="budgetChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+
+  <footer class="mcf-footer"><div class="mcf-container"><div class="mcf-footer-content">
+    <div class="mcf-footer-brand">
+      <img src="https://static.wixstatic.com/media/c24a60_2b6231b666214539ae22ebd2dffe7a09~mv2.png" alt="My College Finance Logo" class="mcf-logo-header">
+      <div class="mcf-footer-title">MY COLLEGE FINANCE</div>
+      <p class="mcf-footer-desc">Empowering students with financial education and smart tools for a brighter future.</p>
+    </div>
+    <div class="mcf-footer-links">
+      <a href="https://www.mycollegefinance.com/" class="mcf-footer-link" target="_blank" rel="noopener">Main Website</a><span class="mcf-footer-sep">&bull;</span>
+      <a href="https://www.mycollegefinance.com/privacy-policy" class="mcf-footer-link" target="_blank" rel="noopener">Privacy Policy</a><span class="mcf-footer-sep">&bull;</span>
+      <a href="https://www.mycollegefinance.com/terms-policy" class="mcf-footer-link" target="_blank" rel="noopener">Terms of Service</a><span class="mcf-footer-sep">&bull;</span>
+      <a href="https://linktr.ee/mycollegefinance" class="mcf-footer-link" target="_blank" rel="noopener">Social Media</a>
+    </div>
+    <div class="mcf-footer-tagline">EDUCATE &bull; MOTIVATE &bull; ELEVATE</div>
+    <div class="mcf-footer-copy">&copy; 2025 My College Finance. All rights reserved.</div>
+  </div></div></footer>
+
+  <button class="chat-fab" id="chatFab" onclick="toggleChat()" aria-label="Chat with Oliver">
+    <span class="chat-fab-sparkle"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1C12 1 14 8 16 10C18 12 23 12 23 12C23 12 18 12 16 14C14 16 12 23 12 23C12 23 10 16 8 14C6 12 1 12 1 12C1 12 6 12 8 10C10 8 12 1 12 1Z"/><path d="M5 0C5 0 5.8 2.8 6.5 3.5C7.2 4.2 10 5 10 5C10 5 7.2 5.8 6.5 6.5C5.8 7.2 5 10 5 10C5 10 4.2 7.2 3.5 6.5C2.8 5.8 0 5 0 5C0 5 2.8 4.2 3.5 3.5C4.2 2.8 5 0 5 0Z" transform="translate(0 13) scale(0.55)"/></svg></span>
+    <span class="chat-fab-label">Chat with Oliver</span>
+    <span class="chat-fab-beta">Beta</span>
+  </button>
+
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <img src="https://static.wixstatic.com/media/c24a60_ea062a09a23b44b8bc18abe964d8078e~mv2.jpg" alt="Oliver" class="chat-avatar" onerror="this.style.display='none'">
+      <div class="chat-header-info"><div class="chat-header-name">Ask Oliver</div><div class="chat-header-status">Your Budget Assistant</div></div>
+      <button class="chat-close" onclick="toggleChat()">&times;</button>
+    </div>
+    <div class="chat-messages" id="chatMessages"><div class="chat-msg bot">Hey there! I'm Oliver, your personal budget assistant. I can see your spending data and help you make smarter money moves. What would you like to know?</div></div>
+    <div class="chat-suggestions" id="chatSuggestions">
+      <button class="chat-suggestion" onclick="sendSuggestion(this)">Where am I overspending?</button>
+      <button class="chat-suggestion" onclick="sendSuggestion(this)">How do I start saving?</button>
+      <button class="chat-suggestion" onclick="sendSuggestion(this)">What's the 50/30/20 rule?</button>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" id="chatInput" placeholder="Ask Oliver anything..." maxlength="500">
+      <button class="chat-send" id="chatSend" onclick="sendMessage()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'mcf-finance-tracker';
+// ===== GEMINI API CONFIG =====
+// Paste your free Gemini API key between the quotes below.
+// Get one at: https://aistudio.google.com/apikey
+const GEMINI_API_KEY = 'AIzaSyCNArCEiV6fP3B9PvHYogMGSbkcGTwNpAw';
+const GEMINI_MODEL = 'gemini-2.0-flash';
+// =============================
+const CAT_COLORS = { Housing:'#4c6ef5', Food:'#f76707', Transportation:'#20c997', Entertainment:'#e64980', Education:'#7950f2', Healthcare:'#12b886', Savings:'#26e011', Other:'#868e96' };
+let expenses = [], profile = { budget: 0, name: '' };
+let barChart, donutChart, budgetCompChart;
+let budgetSaveTimer = null;
+
+document.addEventListener('DOMContentLoaded', () => { loadData(); initTheme(); initForm(); initBudgetInput(); initCharts(); initMonthFilter(); render(); });
+
+function initTheme() {
+  if (localStorage.getItem('mcf-theme') === 'dark') document.body.classList.add('dark-mode');
+  updateThemeIcons();
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('mcf-theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+    updateThemeIcons(); updateChartColors();
+  });
+}
+function updateThemeIcons() {
+  const d = document.body.classList.contains('dark-mode');
+  document.querySelector('.sun-icon').style.display = d ? 'none' : 'block';
+  document.querySelector('.moon-icon').style.display = d ? 'block' : 'none';
+}
+
+function loadData() {
+  try { const d = JSON.parse(localStorage.getItem(STORAGE_KEY)); if (d) { expenses = d.expenses||[]; profile = d.profile||{budget:0,name:''}; } } catch(e) {}
+  document.getElementById('budgetInput').value = profile.budget || '';
+  document.getElementById('nameInput').value = profile.name || '';
+  if (profile.budget > 0) document.getElementById('budgetInput').classList.add('set');
+}
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ expenses, profile })); }
+
+function initBudgetInput() {
+  const input = document.getElementById('budgetInput');
+  input.addEventListener('input', () => {
+    clearTimeout(budgetSaveTimer);
+    budgetSaveTimer = setTimeout(() => {
+      profile.budget = parseFloat(input.value) || 0;
+      saveData(); render();
+      if (profile.budget > 0) {
+        input.classList.add('set');
+        const h = document.getElementById('budgetSavedHint'); h.classList.add('show');
+        setTimeout(() => h.classList.remove('show'), 1500);
+      } else { input.classList.remove('set'); }
+    }, 400);
+  });
+  document.getElementById('nameInput').addEventListener('input', () => {
+    clearTimeout(budgetSaveTimer);
+    budgetSaveTimer = setTimeout(() => { profile.name = document.getElementById('nameInput').value.trim(); saveData(); }, 600);
+  });
+}
+
+function initMonthFilter() {
+  const input = document.getElementById('monthFilter');
+  const now = new Date();
+  input.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  input.addEventListener('change', render);
+}
+function getFilteredExpenses() {
+  const val = document.getElementById('monthFilter').value;
+  if (!val) return expenses;
+  const [yr, mo] = val.split('-').map(Number);
+  return expenses.filter(e => { const d = new Date(e.date); return d.getFullYear() === yr && (d.getMonth()+1) === mo; });
+}
+
+function initForm() {
+  const di = document.getElementById('expDate'); di.value = new Date().toISOString().split('T')[0];
+  document.getElementById('expenseForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const amount = parseFloat(document.getElementById('amount').value);
+    const category = document.getElementById('category').value;
+    const date = document.getElementById('expDate').value;
+    const note = document.getElementById('note').value.trim();
+    if (!amount || amount <= 0 || !category || !date) return;
+    expenses.push({ id: Date.now(), amount, category, date, note });
+    saveData(); render(); e.target.reset(); di.value = new Date().toISOString().split('T')[0];
+    showToast('Expense added!');
+  });
+}
+
+function render() {
+  const f = getFilteredExpenses();
+  renderBudgetPanel(f); renderSummary(f); renderList(f); renderCharts(f); renderBudgetChart(f);
+}
+
+function renderBudgetPanel(data) {
+  const budget = profile.budget, total = data.reduce((s,e) => s + e.amount, 0);
+  const panel = document.getElementById('budgetPanel');
+  const empty = document.getElementById('budgetEmpty');
+  const active = document.getElementById('budgetActive');
+  if (budget <= 0) { empty.style.display = ''; active.style.display = 'none'; panel.classList.remove('has-budget','over-budget'); return; }
+  empty.style.display = 'none'; active.style.display = '';
+  const remaining = budget - total, pct = Math.min((total/budget)*100, 100), over = remaining < 0;
+  panel.classList.add('has-budget'); panel.classList.toggle('over-budget', over);
+  document.getElementById('bsBudget').textContent = '$' + budget.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+  document.getElementById('bsSpent').textContent = '$' + total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('bsSpentPct').textContent = pct.toFixed(1) + '% of budget';
+  const remEl = document.getElementById('bsRemaining'), remPct = document.getElementById('bsRemainingPct');
+  if (over) { remEl.textContent = '-$' + Math.abs(remaining).toFixed(2); remEl.className = 'budget-stat-value color-red'; remPct.textContent = 'Over budget!'; }
+  else { remEl.textContent = '$' + remaining.toFixed(2); remEl.className = 'budget-stat-value color-green'; remPct.textContent = (100-pct).toFixed(1) + '% remaining'; }
+  document.getElementById('bpPct').textContent = pct.toFixed(1) + '%';
+  const fill = document.getElementById('bpFill');
+  fill.style.width = Math.min(pct,100) + '%';
+  fill.className = 'budget-bar-fill ' + (pct<=60?'good':pct<=85?'warning':'danger');
+  document.getElementById('bpText').textContent = over ? "You've exceeded your budget" : pct>=85 ? 'Getting close -- spend carefully!' : pct>=60 ? 'Past halfway -- keep an eye on it' : 'of budget used -- looking good!';
+}
+
+function renderSummary(data) {
+  const total = data.reduce((s,e) => s + e.amount, 0);
+  document.getElementById('totalSpent').textContent = '$' + total.toFixed(2);
+  document.getElementById('expenseCount').textContent = data.length + ' expense' + (data.length!==1?'s':'');
+  const ct = {}; data.forEach(e => { ct[e.category] = (ct[e.category]||0) + e.amount; });
+  const sorted = Object.entries(ct).sort((a,b) => b[1]-a[1]);
+  if (sorted.length) { document.getElementById('topCategory').textContent = sorted[0][0]; document.getElementById('topCategoryAmt').textContent = '$' + sorted[0][1].toFixed(2); }
+  else { document.getElementById('topCategory').textContent = '\u2014'; document.getElementById('topCategoryAmt').textContent = 'No data yet'; }
+}
+
+function renderList(data) {
+  const c = document.getElementById('expenseList');
+  if (!data.length) { c.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128200;</div><div class="empty-title">No expenses yet</div><div class="empty-text">Add your first expense above to get started!</div></div>'; return; }
+  c.innerHTML = [...data].sort((a,b) => new Date(b.date)-new Date(a.date)).map(e => `<div class="expense-item"><div class="expense-left"><div class="expense-cat-dot" style="background:${CAT_COLORS[e.category]||'#868e96'}"></div><div><div class="expense-category">${e.category}</div>${e.note?`<div class="expense-note">${escHtml(e.note)}</div>`:''}</div></div><div class="expense-right"><span class="expense-amount">$${e.amount.toFixed(2)}</span><span class="expense-date">${formatDate(e.date)}</span><button class="expense-delete" onclick="deleteExpense(${e.id})">&times;</button></div></div>`).join('');
+}
+function deleteExpense(id) { expenses = expenses.filter(e => e.id!==id); saveData(); render(); showToast('Expense removed'); }
+
+function getTC() { return document.body.classList.contains('dark-mode') ? '#94a3b8' : '#64748b'; }
+function getGC() { return document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'; }
+function initCharts() {
+  const tc = getTC(), gc = getGC();
+  Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"; Chart.defaults.font.size = 11;
+  barChart = new Chart(document.getElementById('barChart'), { type:'bar', data:{labels:[],datasets:[{label:'Spent',data:[],backgroundColor:[],borderRadius:6,borderSkipped:false}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+c.parsed.y.toFixed(2)}}},scales:{y:{beginAtZero:true,ticks:{color:tc,callback:v=>'$'+v},grid:{color:gc}},x:{ticks:{color:tc,maxRotation:45},grid:{display:false}}}} });
+  donutChart = new Chart(document.getElementById('donutChart'), { type:'doughnut', data:{labels:[],datasets:[{data:[],backgroundColor:[],borderWidth:0,hoverOffset:6}]}, options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:tc,padding:12,font:{size:10},usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:c=>c.label+': $'+c.parsed.toFixed(2)}}}} });
+  budgetCompChart = new Chart(document.getElementById('budgetChart'), { type:'bar', data:{labels:[],datasets:[{label:'Budget (equal split)',data:[],backgroundColor:'rgba(1,38,153,0.15)',borderColor:'#012699',borderWidth:2,borderRadius:4,borderSkipped:false},{label:'Actual Spent',data:[],backgroundColor:[],borderRadius:4,borderSkipped:false}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:tc,padding:10,font:{size:10},usePointStyle:true}},tooltip:{callbacks:{label:c=>c.dataset.label+': $'+c.parsed.y.toFixed(2)}}},scales:{y:{beginAtZero:true,ticks:{color:tc,callback:v=>'$'+v},grid:{color:gc}},x:{ticks:{color:tc},grid:{display:false}}}} });
+}
+function renderCharts(data) {
+  const ct = {}; data.forEach(e => { ct[e.category] = (ct[e.category]||0) + e.amount; });
+  const cats = Object.keys(ct), vals = Object.values(ct), cols = cats.map(c => CAT_COLORS[c]||'#868e96');
+  barChart.data.labels = cats; barChart.data.datasets[0].data = vals; barChart.data.datasets[0].backgroundColor = cols; barChart.update('none');
+  donutChart.data.labels = cats; donutChart.data.datasets[0].data = vals; donutChart.data.datasets[0].backgroundColor = cols; donutChart.update('none');
+}
+function renderBudgetChart(data) {
+  const card = document.getElementById('budgetChartCard');
+  if (profile.budget <= 0) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  const ct = {}; data.forEach(e => { ct[e.category] = (ct[e.category]||0) + e.amount; });
+  const total = data.reduce((s,e) => s+e.amount, 0);
+  const cats = Object.keys(ct).sort((a,b) => ct[b]-ct[a]);
+  const labels = ['TOTAL', ...cats];
+  const budgetPerCat = cats.length > 0 ? profile.budget / cats.length : 0;
+  const budgetVals = [profile.budget, ...cats.map(() => budgetPerCat)];
+  const spentVals = [total, ...cats.map(c => ct[c])];
+  const spentColors = labels.map((l,i) => { if (i===0) return total > profile.budget ? '#ef4444' : '#26e011'; return spentVals[i] > budgetVals[i] ? '#ef4444' : CAT_COLORS[cats[i-1]]||'#868e96'; });
+  budgetCompChart.data.labels = labels; budgetCompChart.data.datasets[0].data = budgetVals; budgetCompChart.data.datasets[1].data = spentVals; budgetCompChart.data.datasets[1].backgroundColor = spentColors; budgetCompChart.update('none');
+}
+function updateChartColors() {
+  const tc = getTC(), gc = getGC();
+  [barChart, budgetCompChart].forEach(c => { c.options.scales.y.ticks.color=tc; c.options.scales.x.ticks.color=tc; c.options.scales.y.grid.color=gc; });
+  donutChart.options.plugins.legend.labels.color = tc;
+  budgetCompChart.options.plugins.legend.labels.color = tc;
+  barChart.update('none'); donutChart.update('none'); budgetCompChart.update('none');
+}
+
+function toggleProfile() { document.getElementById('profileContent').classList.toggle('open'); document.getElementById('profileArrow').classList.toggle('open'); }
+
+function exportCSV() {
+  const d = getFilteredExpenses(); if (!d.length) { showToast('No expenses to export'); return; }
+  let csv = 'Date,Category,Amount,Note\n';
+  d.forEach(e => { csv += `${e.date},${e.category},${e.amount},"${(e.note||'').replace(/"/g,'""')}"\n`; });
+  downloadFile(csv, 'mcf-expenses.csv', 'text/csv'); showToast('CSV downloaded!');
+}
+function exportPDF() {
+  const data = getFilteredExpenses(); if (!data.length) { showToast('No expenses to export'); return; }
+  const { jsPDF } = window.jspdf; const doc = new jsPDF(); const pw = doc.internal.pageSize.getWidth();
+  doc.setFillColor(1,38,153); doc.rect(0,0,pw,35,'F'); doc.setTextColor(255,255,255);
+  doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.text('Personal Finance Tracker',14,16);
+  doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.text('My College Finance - EDUCATE * MOTIVATE * ELEVATE',14,24);
+  doc.text('Report: '+document.getElementById('monthFilter').value+'  |  Generated: '+new Date().toLocaleDateString(),14,31);
+  let y=45; const total=data.reduce((s,e)=>s+e.amount,0);
+  doc.setTextColor(0,0,0); doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Monthly Summary',14,y); y+=8;
+  doc.setFontSize(10); doc.setFont(undefined,'normal');
+  doc.text('Total Spent: $'+total.toFixed(2),14,y); y+=6;
+  doc.text('Total Expenses: '+data.length,14,y); y+=6;
+  if (profile.budget>0) { const r=profile.budget-total; doc.text('Monthly Budget: $'+profile.budget.toFixed(2)+'  |  Remaining: $'+r.toFixed(2)+(r<0?' (OVER BUDGET)':''),14,y); y+=6; doc.text('Budget Used: '+Math.min((total/profile.budget*100),100).toFixed(1)+'%',14,y); y+=6; }
+  if (profile.name) { doc.text('Profile: '+profile.name,14,y); y+=6; }
+  y+=6; doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Expense Details',14,y); y+=7;
+  doc.setFillColor(241,245,249); doc.rect(14,y-4,pw-28,8,'F');
+  doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(100,116,139);
+  doc.text('DATE',16,y); doc.text('CATEGORY',50,y); doc.text('AMOUNT',100,y); doc.text('NOTE',130,y); y+=8;
+  doc.setFont(undefined,'normal'); doc.setTextColor(0,0,0);
+  [...data].sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(e => { if(y>270){doc.addPage();y=20;} doc.setFontSize(8); doc.text(e.date,16,y); doc.text(e.category,50,y); doc.text('$'+e.amount.toFixed(2),100,y); doc.text((e.note||'-').substring(0,40),130,y); y+=6; });
+  y+=8; if(y>240){doc.addPage();y=20;} doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Category Breakdown',14,y); y+=8;
+  const ct={}; data.forEach(e=>{ct[e.category]=(ct[e.category]||0)+e.amount;});
+  doc.setFontSize(9); doc.setFont(undefined,'normal');
+  Object.entries(ct).sort((a,b)=>b[1]-a[1]).forEach(([c,a])=>{doc.text(c+': $'+a.toFixed(2)+' ('+((a/total)*100).toFixed(1)+'%)',16,y);y+=6;});
+  y=doc.internal.pageSize.getHeight()-10; doc.setFontSize(7); doc.setTextColor(150,150,150);
+  doc.text('(c) 2025 My College Finance. All rights reserved. | mycollegefinance.com',pw/2,y,{align:'center'});
+  doc.save('MCF-Finance-Report.pdf'); showToast('PDF downloaded!');
+}
+function resetAll() {
+  if (!confirm('Are you sure? This will delete all expenses and budget data.')) return;
+  expenses=[]; profile={budget:0,name:''};
+  document.getElementById('budgetInput').value=''; document.getElementById('budgetInput').classList.remove('set');
+  document.getElementById('nameInput').value=''; saveData(); render(); showToast('All data cleared');
+}
+function downloadTemplate() {
+  const {jsPDF}=window.jspdf; const doc=new jsPDF(); const pw=doc.internal.pageSize.getWidth();
+  doc.setFillColor(1,38,153); doc.rect(0,0,pw,30,'F'); doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont(undefined,'bold'); doc.text('Personal Finance Tracker - Blank Template',14,14);
+  doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.text('My College Finance - EDUCATE * MOTIVATE * ELEVATE',14,22);
+  let y=42; doc.setTextColor(0,0,0); doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('Monthly Budget Goal: $______________',14,y); y+=8; doc.text('Month/Year: _______________',14,y); y+=8; doc.text('Name: _______________',14,y); y+=12;
+  doc.setFontSize(12); doc.text('Expense Log',14,y); y+=8;
+  doc.setFillColor(241,245,249); doc.rect(14,y-4,pw-28,8,'F');
+  doc.setFontSize(8); doc.setTextColor(100,116,139); doc.text('DATE',16,y); doc.text('CATEGORY',50,y); doc.text('AMOUNT',100,y); doc.text('NOTE',130,y); y+=8;
+  doc.setTextColor(200,200,200); for(let i=0;i<25;i++){doc.line(14,y,pw-14,y);y+=8;if(y>275){doc.addPage();y=20;}}
+  y+=6; doc.setTextColor(0,0,0); doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.text('Monthly Summary',14,y); y+=8;
+  doc.setFont(undefined,'normal'); doc.setFontSize(9);
+  doc.text('Total Spent: $______________',14,y); y+=7; doc.text('Budget Remaining: $______________',14,y); y+=7;
+  doc.text('Top Spending Category: ______________',14,y); y+=7; doc.text('Budget Used: _______%',14,y); y+=7;
+  doc.text('Savings Goal Met?  [ ] Yes  [ ] No',14,y);
+  const fy=doc.internal.pageSize.getHeight()-10; doc.setFontSize(7); doc.setTextColor(150,150,150);
+  doc.text('(c) 2025 My College Finance. All rights reserved. | mycollegefinance.com',pw/2,fy,{align:'center'});
+  doc.save('MCF-Finance-Template.pdf'); showToast('Template downloaded!');
+}
+
+// CHAT
+let chatOpen=false, chatHistory=[];
+function toggleChat() { chatOpen=!chatOpen; document.getElementById('chatPanel').classList.toggle('open',chatOpen); if(chatOpen) document.getElementById('chatInput').focus(); }
+function sendSuggestion(b) { document.getElementById('chatSuggestions').style.display='none'; appendMsg(b.textContent,'user'); callOliver(b.textContent); }
+function sendMessage() { const i=document.getElementById('chatInput'), t=i.value.trim(); if(!t) return; i.value=''; document.getElementById('chatSuggestions').style.display='none'; appendMsg(t,'user'); callOliver(t); }
+document.addEventListener('keydown', e => { if(e.key==='Enter'&&document.activeElement===document.getElementById('chatInput')){e.preventDefault();sendMessage();} });
+function appendMsg(t,r) { const c=document.getElementById('chatMessages'),d=document.createElement('div'); d.className='chat-msg '+r; d.textContent=t; c.appendChild(d); c.scrollTop=c.scrollHeight; }
+function showTyping() { const c=document.getElementById('chatMessages'),d=document.createElement('div'); d.className='chat-msg typing'; d.id='typingIndicator'; d.innerHTML='<div class="typing-dots"><span></span><span></span><span></span></div>'; c.appendChild(d); c.scrollTop=c.scrollHeight; }
+function removeTyping() { const e=document.getElementById('typingIndicator'); if(e) e.remove(); }
+function getExpenseSummaryForAI() {
+  const f=getFilteredExpenses(), total=f.reduce((s,e)=>s+e.amount,0), ct={};
+  f.forEach(e=>{ct[e.category]=(ct[e.category]||0)+e.amount;});
+  let s=`Month: ${document.getElementById('monthFilter').value}\nExpenses: ${f.length}, Total: $${total.toFixed(2)}\n`;
+  if(profile.budget>0){const r=profile.budget-total; s+=`Budget: $${profile.budget.toFixed(2)}, Used: ${(total/profile.budget*100).toFixed(1)}%, Remaining: $${r.toFixed(2)}${r<0?' (OVER BUDGET)':''}\n`;}
+  else s+='No budget set.\n';
+  s+='By category:\n'; Object.entries(ct).sort((a,b)=>b[1]-a[1]).forEach(([c,a])=>{s+=`  ${c}: $${a.toFixed(2)} (${((a/total)*100).toFixed(1)}%)\n`;});
+  if(f.length){s+='Recent:\n';[...f].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,8).forEach(e=>{s+=`  ${e.date} ${e.category}: $${e.amount.toFixed(2)}${e.note?' ('+e.note+')':''}\n`;});}
+  return s;
+}
+async function callOliver(userMsg) {
+  showTyping(); document.getElementById('chatSend').disabled=true;
+  chatHistory.push({role:'user',content:userMsg});
+
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+    removeTyping(); document.getElementById('chatSend').disabled=false;
+    appendMsg("Oliver isn't connected yet. To enable AI chat, add a free Gemini API key — see SETUP.md for instructions.", 'bot');
+    return;
+  }
+
+  const systemPrompt = `You are Oliver, a friendly budget assistant for My College Finance. Help college students understand spending, save money, and build good habits. Keep responses concise (2-4 sentences unless explaining a concept). Warm, supportive tone. No jargon. Reference their data when relevant.
+
+USER DATA:
+${getExpenseSummaryForAI()}
+
+Guidelines:
+- Encouraging, not judgmental
+- Specific actionable advice from their data
+- If no data, encourage tracking
+- If no budget, suggest setting one
+- Simple terms, college-student analogies
+- Stay on personal finance topics`;
+
+  // Build Gemini contents array with system context baked into first user turn
+  const geminiContents = [];
+  const recentHistory = chatHistory.slice(-10);
+  for (let i = 0; i < recentHistory.length; i++) {
+    const m = recentHistory[i];
+    const role = m.role === 'assistant' ? 'model' : 'user';
+    let text = m.content;
+    // Prepend system prompt to the first user message
+    if (i === 0 && role === 'user') {
+      text = `[System Context: ${systemPrompt}]\n\nUser message: ${text}`;
+    }
+    geminiContents.push({ role, parts: [{ text }] });
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  const getRetryDelayMs = (res, attempt) => {
+    const h = res.headers.get('retry-after');
+    const seconds = Number(h);
+    if (!Number.isNaN(seconds) && seconds > 0) return Math.min(seconds * 1000, 10000);
+    // Fallback exponential backoff with a sane cap
+    return Math.min(1000 * Math.pow(2, attempt), 10000);
+  };
+
+  try {
+    let res = null, data = null;
+    const maxAttempts = 4; // first try + up to 3 retries for transient rate limits
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': GEMINI_API_KEY
+        },
+        body: JSON.stringify({
+          contents: geminiContents,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 800
+          }
+        })
+      });
+      data = await res.json();
+      if (res.status !== 429 || attempt === maxAttempts - 1) break;
+      await sleep(getRetryDelayMs(res, attempt));
+    }
+    removeTyping(); document.getElementById('chatSend').disabled=false;
+
+    // Log full response for debugging
+    if (!res.ok) {
+      console.error('Gemini API HTTP error:', res.status, data);
+      if (res.status === 429) appendMsg("I hit a temporary rate limit just now. Please wait a few seconds and ask again.", 'bot');
+      else appendMsg("Hmm, I had a little trouble there (error " + res.status + "). Could you try asking again?", 'bot');
+      return;
+    }
+
+    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+      const r = data.candidates[0].content.parts.map(p => p.text || '').join('');
+      chatHistory.push({ role: 'assistant', content: r });
+      appendMsg(r, 'bot');
+    } else if (data.error) {
+      console.error('Gemini API error:', data.error);
+      appendMsg("Hmm, Oliver ran into an issue: " + (data.error.message || 'Unknown error') + ". Try again?", 'bot');
+    } else {
+      console.error('Gemini unexpected response:', JSON.stringify(data).substring(0, 500));
+      appendMsg("Hmm, I had a little trouble there. Could you try asking again?", 'bot');
+    }
+  } catch(e) {
+    console.error('Oliver fetch error:', e);
+    removeTyping(); document.getElementById('chatSend').disabled=false;
+    appendMsg("I'm having trouble connecting right now. Please try again!", 'bot');
+  }
+}
+
+function formatDate(d) { return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function escHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function showToast(m) { const t=document.getElementById('toast'); t.textContent=m; t.classList.add('visible'); setTimeout(()=>t.classList.remove('visible'),2500); }
+function downloadFile(c,f,t) { const b=new Blob([c],{type:t}), u=URL.createObjectURL(b), a=document.createElement('a'); a.href=u; a.download=f; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); }
+</script>
+</body>
+</html>
